@@ -1,0 +1,65 @@
+version: '3.8'
+
+services:
+  # CPU-only service
+  remediation-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: base
+    container_name: ai-codefix-service
+    ports:
+      - "8000:8000"
+    environment:
+      - MODEL_NAME=Qwen/Qwen2.5-Coder-1.5B-Instruct
+      - USE_GPU=false
+    volumes:
+      - ./recipes:/app/recipes:ro
+      - ./logs:/app/logs
+      - ./data:/app/data
+      - model-cache:/root/.cache/huggingface
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - remediation-network
+
+  # GPU-enabled service (uncomment if GPU available)
+  # remediation-service-gpu:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile
+  #     target: gpu
+  #   container_name: ai-codefix-service-gpu
+  #   ports:
+  #     - "8000:8000"
+  #   environment:
+  #     - MODEL_NAME=Qwen/Qwen2.5-Coder-1.5B-Instruct
+  #     - USE_GPU=true
+  #   volumes:
+  #     - ./recipes:/app/recipes:ro
+  #     - ./logs:/app/logs
+  #     - ./data:/app/data
+  #     - model-cache:/root/.cache/huggingface
+  #   deploy:
+  #     resources:
+  #       reservations:
+  #         devices:
+  #           - driver: nvidia
+  #             count: 1
+  #             capabilities: [gpu]
+  #   restart: unless-stopped
+  #   networks:
+  #     - remediation-network
+
+volumes:
+  model-cache:
+    driver: local
+
+networks:
+  remediation-network:
+    driver: bridge

@@ -1,0 +1,57 @@
+CWE-89: SQL Injection Remediation Guidelines
+
+VULNERABILITY OVERVIEW:
+SQL Injection occurs when user-controlled input is directly concatenated into SQL queries without proper validation or parameterization. Attackers can manipulate the query logic to access, modify, or delete unauthorized data.
+
+REMEDIATION STRATEGIES:
+
+1. PARAMETERIZED QUERIES (PREPARED STATEMENTS)
+   - Use placeholders (?, :param) instead of string concatenation
+   - Database driver handles proper escaping and type checking
+   - Works for all major databases (MySQL, PostgreSQL, Oracle, SQL Server)
+
+2. ORM FRAMEWORKS
+   - Utilize Object-Relational Mapping tools (Hibernate, JPA, SQLAlchemy)
+   - ORM automatically generates parameterized queries
+   - Reduces direct SQL exposure
+
+3. STORED PROCEDURES
+   - Encapsulate query logic in database stored procedures
+   - Call procedures with parameters from application code
+   - Limits SQL injection surface area
+
+4. INPUT VALIDATION
+   - Whitelist allowed characters for each input type
+   - Validate data types (integers, emails, etc.)
+   - Reject or sanitize unexpected input
+
+5. LEAST PRIVILEGE
+   - Database user should have minimal necessary permissions
+   - Read-only access where possible
+   - Prevent DROP, ALTER, DELETE on production users
+
+LANGUAGE-SPECIFIC EXAMPLES:
+
+Java (JDBC):
+  PreparedStatement pstmt = connection.prepareStatement(
+    "SELECT * FROM users WHERE username = ?"
+  );
+  pstmt.setString(1, username);
+
+Python (psycopg2):
+  cursor.execute(
+    "SELECT * FROM users WHERE username = %s",
+    (username,)
+  )
+
+JavaScript (Node.js with mysql2):
+  connection.query(
+    'SELECT * FROM users WHERE username = ?',
+    [username],
+    callback
+  )
+
+TESTING:
+- Test with common SQL injection payloads: ' OR '1'='1, '; DROP TABLE users--
+- Use automated tools: SQLMap, Burp Suite
+- Conduct code reviews focusing on database query construction

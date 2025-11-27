@@ -1,0 +1,143 @@
+CWE-78: OS Command Injection Remediation Guidelines
+
+VULNERABILITY OVERVIEW:
+OS Command Injection occurs when user-controlled input is passed to system commands without proper sanitization. Attackers can execute arbitrary commands on the host operating system, potentially gaining full system access, stealing data, or installing malware.
+
+COMMON ATTACK VECTORS:
+- Shell metacharacters: ; | & $ ` \ " ' < >
+- Command chaining: command1 && command2
+- Command substitution: $(malicious_command)
+- Newline injection: \n malicious_command
+
+REMEDIATION STRATEGIES:
+
+1. AVOID SYSTEM COMMANDS
+   - Use language-native libraries instead
+   - File operations: Use language file APIs
+   - Network: Use HTTP/networking libraries
+   - Data processing: Use native functions
+
+2. PARAMETERIZED COMMAND EXECUTION
+   - Pass arguments as array, not string
+   - Prevents shell interpretation
+   - Direct execution without shell
+
+3. INPUT VALIDATION
+   - Whitelist allowed characters
+   - Reject special shell metacharacters
+   - Validate against expected format
+   - Use strict type checking
+
+4. ESCAPE/SANITIZE INPUT
+   - Use framework escaping functions
+   - Shell-escape special characters
+   - Quote parameters properly
+
+5. LEAST PRIVILEGE
+   - Run application with minimal permissions
+   - Use restricted shell environments
+   - Implement sandboxing
+
+LANGUAGE-SPECIFIC EXAMPLES:
+
+Python (Safe):
+  import subprocess
+  import shlex
+  
+  # UNSAFE
+  os.system(f"ping -c 4 {host}")
+  
+  # SAFE - Use list argument (no shell)
+  subprocess.run(["ping", "-c", "4", host], check=True)
+  
+  # If shell needed, use shlex.quote()
+  safe_host = shlex.quote(host)
+  subprocess.run(f"ping -c 4 {safe_host}", shell=True, check=True)
+
+Java (Safe):
+  // UNSAFE
+  Runtime.getRuntime().exec("ping -c 4 " + host);
+  
+  // SAFE - Use array argument
+  ProcessBuilder pb = new ProcessBuilder("ping", "-c", "4", host);
+  Process process = pb.start();
+
+Node.js (Safe):
+  const { execFile } = require('child_process');
+  
+  // UNSAFE
+  exec(`ping -c 4 ${host}`);
+  
+  // SAFE - Use execFile with arguments array
+  execFile('ping', ['-c', '4', host], (error, stdout) => {
+      console.log(stdout);
+  });
+
+PHP (Safe):
+  // UNSAFE
+  system("ping -c 4 " . $host);
+  
+  // SAFE - Use escapeshellarg()
+  $safe_host = escapeshellarg($host);
+  system("ping -c 4 " . $safe_host);
+  
+  // BETTER - Use proc_open with arguments array
+  $descriptors = [...];
+  $process = proc_open('ping', ['-c', '4', $host], $descriptors);
+
+ALTERNATIVE APPROACHES:
+
+Replace Common Commands:
+  Instead of: system("cat " + filename)
+  Use: file_get_contents(filename)
+  
+  Instead of: exec("ls " + directory)
+  Use: scandir(directory)
+  
+  Instead of: os.system("wget " + url)
+  Use: requests.get(url)
+
+Validation Example:
+  def validate_hostname(hostname):
+      # Only allow alphanumeric, dots, and hyphens
+      if not re.match(r'^[a-zA-Z0-9.-]+$', hostname):
+          raise ValueError("Invalid hostname")
+      return hostname
+
+SECURITY FUNCTIONS:
+
+Python:
+  import shlex
+  safe_arg = shlex.quote(user_input)
+
+Java:
+  // Use ProcessBuilder instead of Runtime.exec()
+  ProcessBuilder pb = new ProcessBuilder(command, arg1, arg2);
+
+Node.js:
+  // Use child_process.execFile or spawn
+  const { spawn } = require('child_process');
+  const proc = spawn('command', [arg1, arg2]);
+
+BEST PRACTICES:
+- Never pass user input directly to shell commands
+- Use native language libraries when possible
+- Pass command arguments as arrays, not strings
+- Disable shell interpretation (shell=False)
+- Validate input against strict whitelist
+- Log all command executions
+- Implement rate limiting
+- Run with least privilege user
+
+DANGEROUS FUNCTIONS TO AVOID:
+- Python: os.system(), os.popen(), subprocess with shell=True
+- Java: Runtime.getRuntime().exec(String)
+- Node.js: exec(), eval()
+- PHP: system(), exec(), shell_exec(), passthru()
+- Ruby: system(string), `backticks`, exec(string)
+
+TESTING:
+- Test payloads: ; whoami, | cat /etc/passwd, && id
+- Command substitution: $(whoami), `whoami`
+- Use automated tools: Commix, Burp Suite
+- Manual testing with various injection techniques
